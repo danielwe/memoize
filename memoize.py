@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """memoize.py
-Module providing memoize decorators for regular functions and instance methods
+Module providing memoize decorators for instance methods and ordinary functions
 
 Adapted from
 http://code.activestate.com/recipes/577452-a-memoize-decorator-for-instance-methods/  # noqa
