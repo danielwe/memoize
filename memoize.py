@@ -260,8 +260,8 @@ class memoize_method(object):
 
 class _HashableDict(Mapping):
     """
-    An immutable, hashable mapping type. The hash is computed based from both
-    keys and values.
+    An immutable, hashable mapping type. The hash is computed using both keys
+    and values.
 
     Inspired by Raymond Hettinger's contribution at
     http://stackoverflow.com/questions/1151658/python-hashable-dicts
