@@ -142,6 +142,10 @@ class memoize_method(object):
     with mostly minor aesthetic modifications, plus the support for unhashable
     argument lists and a method for clearing the cahce on an instance.
 
+    ..note:: due to the reliance on circular references, this memoizer can not
+    be used on methods of classes with custom `__hash__()` methods when support
+    for pickling and unpickling is required.
+
     Parameters
     ----------
     f : method
