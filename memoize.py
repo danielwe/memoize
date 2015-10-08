@@ -10,7 +10,7 @@ http://code.activestate.com/recipes/577452-a-memoize-decorator-for-instance-meth
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from collections import Mapping
+from collections import Hashable, Mapping
 from functools import partial, update_wrapper
 from inspect import getcallargs  # Python >= 2.7
 try:
@@ -80,21 +80,26 @@ class memoize_function(object):
     cache_name = '_memoize_function_cache'
 
     def __init__(self, f):
-        self._f = f
+        self.f = f
         setattr(self, self.cache_name, {})
         update_wrapper(self, f)
 
     def __call__(self, *args, **kwargs):
-        f = self._f
+        # Get internal state from argument list
+        f = self.f
         callargs = getcallargs(f, *args, **kwargs)
         varkw = getfullargspec(f)[2]
+
+        # Make callargs a _HashableDict and create cache key
+        if varkw is not None:
+            callargs[varkw] = _HashableDict(callargs[varkw])
+        key = _HashableDict(callargs)
+
+        # Get cache dict
         cache = getattr(self, self.cache_name)
 
+        # Lookup/compute result
         try:
-            if varkw is not None:
-                kw = callargs[varkw]
-                callargs[varkw] = _HashableDict(kw)
-            key = _HashableDict(callargs)
             res = cache[key]
         except KeyError:
             cache[key] = res = f(*args, **kwargs)
@@ -189,40 +194,46 @@ class memoize_method(object):
     # USE OR OTHER DEALINGS IN THE SOFTWARE.
 
     cache_name = '_memoize_method_cache'
+    friend_list_name = 'memoize_friends'
 
     def __init__(self, f):
-        self._f = f
+        self.f = f
         update_wrapper(self, f)
 
     def __get__(self, obj, otype=None):
-        f = self._f
         if obj is None:
-            return f
+            return self.f
         return partial(self, obj)
 
     def __call__(self, *args, **kwargs):
-        f = self._f
+        # Get internal state from argument list
+        f = self.f
         callargs = getcallargs(f, *args, **kwargs)
         varkw = getfullargspec(f)[2]
-        obj = args[0]
 
-        # Remove obj (the 'self' parameter) from callargs
+        # Remove calling instance (the 'self' parameter) from callargs.
+        # This is crucial: we don't want to rely on the calling instance being
+        # hashable.
+        obj = args[0]
         for (key, value) in callargs.items():
             if value is obj:
                 del callargs[key]
                 break
 
+        # Make callargs a _HashableDict and create cache key
+        if varkw is not None:
+            callargs[varkw] = _HashableDict(callargs[varkw])
+        key = (f.__name__, _HashableDict(callargs))
+
+        # Get/set cache dict
         try:
             cache = getattr(obj, self.cache_name)
         except AttributeError:
             cache = {}
             setattr(obj, self.cache_name, cache)
 
+        # Lookup or compute result
         try:
-            if varkw is not None:
-                kw = callargs[varkw]
-                callargs[varkw] = _HashableDict(kw)
-            key = (f.__name__, _HashableDict(callargs))
             res = cache[key]
         except KeyError:
             cache[key] = res = f(*args, **kwargs)
@@ -262,7 +273,7 @@ class memoize_method(object):
             cache.clear()
 
 
-class _HashableDict(Mapping):
+class _HashableDict(Hashable, Mapping):
     """
     An immutable, hashable mapping type. The hash is computed using both keys
     and values.
@@ -311,4 +322,5 @@ class _HashableDict(Mapping):
         return self._dict.__len__()
 
     def __hash__(self):
-        return hash((frozenset(self._dict), frozenset(self._dict.values())))
+        return hash((frozenset(self._dict.keys()),
+                     frozenset(self._dict.values())))
