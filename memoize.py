@@ -246,10 +246,14 @@ class memoize_method(object):
         """
         Clear the memoizer's cache on an object
 
+        The cache can optionally be cleared recursively on a graph of related
+        objects by storing a sequence of objects related to `obj` at
+        `getattr(obj, memoize_method.friend_list_name)`.
+
         Parameters
         ----------
         obj : object
-              The cache for all memoized methods on 'obj' will be cleared.
+              The cache for all memoized methods on `obj` will be cleared.
 
         Examples
         --------
@@ -265,12 +269,22 @@ class memoize_method(object):
         >>> memoize_method.clear_cache(adder)  # cache on 'adder' cleared
 
         """
+        # For debugging:
+        #print("Clearing cache on {}".format(obj))
         try:
-            cache = getattr(obj, cls.cache_name)
+            cache = getattr(obj, cls._cache_name)
         except AttributeError:
             pass
         else:
             cache.clear()
+
+        try:
+            friends = getattr(obj, cls.friend_list_name)
+        except AttributeError:
+            pass
+        else:
+            for friend in friends:
+                cls.clear_cache(friend)
 
 
 class _HashableDict(Hashable, Mapping):
