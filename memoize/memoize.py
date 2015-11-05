@@ -287,6 +287,31 @@ class memoize_method(object):
                 if friend is not obj:
                     cls.clear_cache(friend)
 
+    @classmethod
+    def register_friend(cls, host, friend):
+        """
+        Register a new friend to an object for cache clearance
+
+        Whenever cache is cleared on `host`, it will also be cleared on
+        `friend`.
+
+        Parameters
+        ----------
+        host : object
+            The object on which to register a cache clearance friend.
+        friend : object
+            The new cache clearance friend to register.
+
+        """
+        if friend is not host:
+            flname = cls.friend_list_name
+            try:
+                friends = getattr(host, flname)
+            except AttributeError:
+                setattr(host, flname, [friend])
+            else:
+                friends.append(friend)
+
 
 class _HashableDict(Hashable, Mapping):
     """
