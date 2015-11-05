@@ -284,7 +284,8 @@ class memoize_method(object):
             pass
         else:
             for friend in friends:
-                cls.clear_cache(friend)
+                if friend is not obj:
+                    cls.clear_cache(friend)
 
 
 class _HashableDict(Hashable, Mapping):
