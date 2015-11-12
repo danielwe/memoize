@@ -41,30 +41,26 @@ class Memparams(object):
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
-        try:
+        if hasattr(obj, self._storage_name):
             storage = getattr(obj, self._storage_name)
-            return storage[self.key]
-        except (KeyError, AttributeError):
-            raise AttributeError("Attribute not set on {}".format(obj))
+            if self.key in storage:
+                return storage[self.key]
+        raise AttributeError("Attribute not set on {}".format(obj))
 
     def __set__(self, obj, value):
         value = memparamstorage(self.base, obj, value)
         storage_name = self._storage_name
-        try:
+        if hasattr(obj, storage_name):
             storage = getattr(obj, storage_name)
-        except AttributeError:
-            setattr(obj, storage_name, {self.key: value})
-        else:
             storage[self.key] = value
+        else:
+            setattr(obj, storage_name, {self.key: value})
         memoize_method.clear_cache(obj)
 
     def __delete__(self, obj):
         storage_name = self._storage_name
-        try:
+        if hasattr(obj, storage_name):
             storage = getattr(obj, storage_name)
-        except AttributeError:
-            pass
-        else:
             del storage[self]
             if not storage:
                 delattr(obj, storage_name)
@@ -200,11 +196,8 @@ def _memparamstorage(base):
         return new_mutator
 
     for mutator_name in Mutators.names:
-        try:
+        if hasattr(_MemparamStorage, mutator_name):
             mutator = getattr(_MemparamStorage, mutator_name)
-        except AttributeError:
-            pass
-        else:
             if isinstance(mutator, Callable):
                 setattr(_MemparamStorage, mutator_name,
                         _make_new_mutator(mutator))

@@ -100,12 +100,13 @@ class memoize_function(object):
 
         # Lookup/compute result
         try:
-            res = cache[key]
-        except KeyError:
-            cache[key] = res = f(*args, **kwargs)
+            if key in cache:
+                return cache[key]
+            else:
+                cache[key] = res = f(*args, **kwargs)
+                return res
         except TypeError:
-            res = f(*args, **kwargs)
-        return res
+            return f(*args, **kwargs)
 
     def clear_cache(self):
         """
@@ -124,8 +125,7 @@ class memoize_function(object):
         >>> types.clear_cache()  # cache on 'types' cleared
 
         """
-        cache = getattr(self, self.cache_name)
-        cache.clear()
+        getattr(self, self.cache_name).clear()
 
 
 class memoize_method(object):
@@ -226,20 +226,21 @@ class memoize_method(object):
         key = (f.__name__, _HashableDict(callargs))
 
         # Get/set cache dict
-        try:
+        if hasattr(obj, self.cache_name):
             cache = getattr(obj, self.cache_name)
-        except AttributeError:
+        else:
             cache = {}
             setattr(obj, self.cache_name, cache)
 
         # Lookup or compute result
         try:
-            res = cache[key]
-        except KeyError:
-            cache[key] = res = f(*args, **kwargs)
+            if key in cache:
+                return cache[key]
+            else:
+                cache[key] = res = f(*args, **kwargs)
+                return res
         except TypeError:
-            res = f(*args, **kwargs)
-        return res
+            return f(*args, **kwargs)
 
     @classmethod
     def clear_cache(cls, obj):
@@ -271,19 +272,11 @@ class memoize_method(object):
         """
         # For debugging:
         #print("Clearing cache on {}".format(obj))
-        try:
-            cache = getattr(obj, cls._cache_name)
-        except AttributeError:
-            pass
-        else:
-            cache.clear()
+        if hasattr(obj, cls.cache_name):
+            getattr(obj, cls.cache_name).clear()
 
-        try:
-            friends = getattr(obj, cls.friend_list_name)
-        except AttributeError:
-            pass
-        else:
-            for friend in friends:
+        if hasattr(obj, cls.friend_list_name):
+            for friend in getattr(obj, cls.friend_list_name):
                 if friend is not obj:
                     cls.clear_cache(friend)
 
@@ -304,13 +297,10 @@ class memoize_method(object):
 
         """
         if friend is not host:
-            flname = cls.friend_list_name
-            try:
-                friends = getattr(host, flname)
-            except AttributeError:
-                setattr(host, flname, [friend])
+            if hasattr(host, cls.friend_list_name):
+                getattr(host, cls.friend_list_name).append(friend)
             else:
-                friends.append(friend)
+                setattr(host, cls.friend_list_name, [friend])
 
 
 class _HashableDict(Hashable, Mapping):
