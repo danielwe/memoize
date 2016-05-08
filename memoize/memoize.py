@@ -302,6 +302,26 @@ class memoize_method(object):
             else:
                 setattr(host, cls.friend_list_name, [friend])
 
+    @classmethod
+    def unregister_friend(cls, host, friend):
+        """
+        Unregister a friend to an object for cache clearance
+
+        Cache is cleared on `friend` will not be automatically executed after
+        cache clearance on `host` anymore.
+
+        Parameters
+        ----------
+        host : object
+            The object on which to unregister a cache clearance friend.
+        friend : object
+            The cache clearance friend to unregister.
+
+        """
+        if friend is not host:
+            if hasattr(host, cls.friend_list_name):
+                getattr(host, cls.friend_list_name).remove(friend)
+
 
 class _HashableDict(Hashable, Mapping):
     """
