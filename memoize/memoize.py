@@ -298,9 +298,9 @@ class memoize_method(object):
         """
         if friend is not host:
             if hasattr(host, cls.friend_list_name):
-                getattr(host, cls.friend_list_name).append(friend)
+                getattr(host, cls.friend_list_name).add(friend)
             else:
-                setattr(host, cls.friend_list_name, [friend])
+                setattr(host, cls.friend_list_name, set([friend]))
 
     @classmethod
     def unregister_friend(cls, host, friend):
